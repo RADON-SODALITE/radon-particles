@@ -3,6 +3,10 @@ tosca_definitions_version: tosca_simple_yaml_1_3
 node_types:
   sodalite.nodes.TestComponent:
     derived_from: tosca.nodes.SoftwareComponent
+    metadata:
+      targetNamespace: "sodalite.nodes"
+      abstract: "false"
+      final: "false"
     properties:
       test_delay:
         type: integer
@@ -12,6 +16,12 @@ node_types:
         type: integer
         description: Port for testing availability of the container
         required: false
+    requirements:
+      - tested_component:
+          capability: tosca.capabilities.Node
+          node: tosca.nodes.SoftwareComponent
+          relationship: tosca.relationships.DependsOn
+          occurrences: [ 1, 1 ]
     interfaces:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
@@ -20,21 +30,19 @@ node_types:
             inputs:
               component_name:
                 type: string
+                required: true
                 default: { get_attribute: [ SELF, tested_component, tosca_name ] }
               test_delay:
                 type: string
+                required: true
                 default: { get_property: [ SELF, test_delay ] }
               test_port:
                 type: string
+                required: true
                 default: { get_property: [ SELF, test_port ] }
             implementation:
               primary: test_container
-    requirements:
-      - tested_component:
-          node: tosca.nodes.SoftwareComponent
-          relationship: tosca.relationships.DependsOn
-          capability: tosca.capabilities.Node
     artifacts:
-      login_user:
+      test_container:
         type: radon.artifacts.Ansible
         file: test_container.yml
