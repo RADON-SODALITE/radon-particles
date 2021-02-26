@@ -1,0 +1,40 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+node_types:
+  sodalite.nodes.TestComponent:
+    derived_from: tosca.nodes.SoftwareComponent
+    properties:
+      test_delay:
+        type: integer
+        description: Delay for waiting container to come up
+        required: false
+      test_port:
+        type: integer
+        description: Port for testing availability of the container
+        required: false
+    interfaces:
+      Standard:
+        type: tosca.interfaces.node.lifecycle.Standard
+        operations:
+          create:
+            inputs:
+              component_name:
+                type: string
+                default: { get_attribute: [ SELF, tested_component, tosca_name ] }
+              test_delay:
+                type: string
+                default: { get_property: [ SELF, test_delay ] }
+              test_port:
+                type: string
+                default: { get_property: [ SELF, test_port ] }
+            implementation:
+              primary: test_container
+    requirements:
+      - tested_component:
+          node: tosca.nodes.SoftwareComponent
+          relationship: tosca.relationships.DependsOn
+          capability: tosca.capabilities.Node
+    artifacts:
+      login_user:
+        type: radon.artifacts.Ansible
+        file: test_container.yml
