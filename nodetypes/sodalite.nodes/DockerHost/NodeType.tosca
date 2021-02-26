@@ -1,0 +1,44 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+node_types:
+  sodalite.nodes.DockerHost:
+    derived_from: tosca.nodes.SoftwareComponent
+    attributes:
+      public_address:
+        description: Host's IP
+        type: string
+      username:
+        description: Host's username
+        type: string
+    capabilities:
+      host:
+        type: tosca.capabilities.Compute
+        valid_source_types: ['sodalite.nodes.DockerizedComponent']
+    interfaces:
+      Standard:
+        type: tosca.interfaces.node.lifecycle.Standard
+        operations:
+          create:
+            inputs:
+              host_public_address:
+                type: string
+                default: { get_attribute: [ SELF, host, public_address ] }
+              ansible_user:
+                type: string
+                default: { get_property: [ SELF, host, username ] }
+            implementation:
+              primary: create_docker_host
+          delete:
+            inputs:
+              ansible_user:
+                type: string
+                default: { get_property: [ SELF, host, username ] }
+            implementation:
+              primary: delete_docker_host
+    artifacts:
+      create_docker_host:
+        type: radon.artifacts.Ansible
+        file: create_docker_host.yml
+      delete_docker_host:
+        type: radon.artifacts.Ansible
+        file: delete_docker_host.yml
