@@ -7,12 +7,12 @@ data_types:
       targetNamespace: "sodalite.datatypes.OpenStack.env.Token"
       abstract: "false"
       final: "false"
-    properties:  
-      CHECKIN_CLIENT_ID:  
-        type: string 
-      CHECKIN_CLIENT_SECRET:  
-        type: string 
-      CHECKIN_REFRESH_TOKEN:  
-        type: string 
-      EGI_SITE:  
+    properties:
+      EGI_SITE:
+        type: string
+      CHECKIN_CLIENT_ID:
+        type: string
+      CHECKIN_CLIENT_SECRET:
+        type: string
+      CHECKIN_REFRESH_TOKEN:
         type: string

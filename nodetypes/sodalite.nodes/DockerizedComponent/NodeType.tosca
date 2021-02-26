@@ -16,7 +16,7 @@ node_types:
         type: list
         description: List of capabilities to add to the container.
         required: false
-        default: []
+        default: "[  ]"
       env_file:
         type: string
         description: Path to file on remote with env vars
@@ -33,22 +33,22 @@ node_types:
         type: list
         description: A list of mounted volumes for the docker container "host_path:container_path" like "/tmp/docker:/tmp"
         required: false
-        default: []
+        default: "[  ]"
       exposed_ports:
         type: string
         description: Exposed ports of the container like "8081"
         required: false
-        default: []
+        default: ""
       ports:
         type: list
         description: Port binding for the docker container "exposed:internal" like "8081:8080"
         required: false
-        default: []
+        default: "[  ]"
       env:
         type: map
         description: Map for docker environment variables key-value dictionary
         required: false
-        default: {}
+        default: "{}"
       command:
         type: list
         description: Commands list for starting the container
@@ -57,7 +57,7 @@ node_types:
         type: map
         description: Dictionary of key value pairs.
         required: false
-        default: {}
+        default: "{}"
       sleep:
         type: integer
         description: Sleep after image is deployed
@@ -86,7 +86,7 @@ node_types:
         type: map
         description: Host-to-IP mappings
         required: false
-        default: {}
+        default: "{}"
       ca_cert:
         type: string
         description: Use a CA certificate when performing server verification by providing the path to a CA certificate file.

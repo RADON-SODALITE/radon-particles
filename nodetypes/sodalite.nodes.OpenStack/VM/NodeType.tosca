@@ -43,7 +43,7 @@ node_types:
         type: map
         description: Additional ssh config, to be added to default ansible_ssh_common_args
         required: false
-        default: {}
+        default: "{}"
       env:
         type: map
         description: Optional OpenStack environment
