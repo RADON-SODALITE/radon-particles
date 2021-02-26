@@ -1,0 +1,68 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+node_types:
+  sodalite.nodes.OpenStack.Keypair:
+    derived_from: tosca.nodes.Root
+    metadata:
+      targetNamespace: "sodalite.nodes.OpenStack"
+      abstract: "false"
+      final: "false"
+    properties:
+      public_key:
+        type: string
+        description: Public key for keypair
+      name:
+        type: string
+        description: Name of the keypair
+      env:
+        type: map
+        description: Optional OpenStack environment
+        required: false
+        entry_schema:
+          type: sodalite.datatypes.OpenStack.env
+    interfaces:
+      Standard:
+        type: tosca.interfaces.node.lifecycle.Standard
+        operations:
+          create:
+            inputs:
+              public_key:
+                type: string
+                required: true
+                default: { get_property: [ SELF, public_key ] }
+              name:
+                type: string
+                required: true
+                default: { get_property: [ SELF, name ] }
+              env:
+                type: map
+                required: true
+                default: { get_property: [ SELF, env ] }
+            implementation:
+              primary: keypair_create
+              dependencies: [ egi_refresh_token ]
+              timeout: 0
+          delete:
+            inputs:
+              name:
+                type: string
+                required: true
+                default: { get_property: [ SELF, name ] }
+              env:
+                type: map
+                required: true
+                default: { get_property: [ SELF, env ] }
+            implementation:
+              primary: keypair_delete
+              dependencies: [ egi_refresh_token ]
+              timeout: 0
+    artifacts:
+      keypair_create:
+        type: radon.artifacts.Ansible
+        file: keypair_create.yml
+      egi_refresh_token:
+        type: radon.artifacts.Ansible
+        file: egi_refresh_token.yml
+      keypair_delete:
+        type: radon.artifacts.Ansible
+        file: keypair_delete.yml

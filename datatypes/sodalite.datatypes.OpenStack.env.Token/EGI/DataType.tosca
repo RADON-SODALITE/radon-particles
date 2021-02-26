@@ -1,0 +1,18 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+data_types:
+  sodalite.datatypes.OpenStack.env.Token.EGI:
+    derived_from: tosca.datatypes.Root
+    metadata:
+      targetNamespace: "sodalite.datatypes.OpenStack.env.Token"
+      abstract: "false"
+      final: "false"
+    properties:  
+      CHECKIN_CLIENT_ID:  
+        type: string 
+      CHECKIN_CLIENT_SECRET:  
+        type: string 
+      CHECKIN_REFRESH_TOKEN:  
+        type: string 
+      EGI_SITE:  
+        type: string

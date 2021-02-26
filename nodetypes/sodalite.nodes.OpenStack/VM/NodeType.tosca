@@ -1,0 +1,161 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+node_types:
+  sodalite.nodes.OpenStack.VM:
+    derived_from: tosca.nodes.Compute
+    metadata:
+      targetNamespace: "sodalite.nodes.OpenStack"
+      abstract: "false"
+      final: "false"
+    attributes:
+      ansible_ip:
+        description: ansible ipv4
+        type: string
+      id:
+        description: OpenStack id of the VM
+        type: string
+    properties:
+      flavor:
+        type: string
+        description: OpenStack flavor id (flavor names are not accepted)
+      key_name:
+        type: string
+        description: OpenStack SSH key name that should be placed on the VM
+      security_groups:
+        type: string
+        description: OpenStack names of the security groups to which the instance should be added.Comma separated string.
+      image:
+        type: string
+        description: OpenStack image id (image names are not accepted)
+      userdata:
+        type: string
+        description: Additional userdata applied to configure the VM
+        required: false
+      include_exporter:
+        type: boolean
+        description: Flag to include exporter
+        required: false
+        default: true
+      name:
+        type: string
+        description: Name that should be given to the VM in OpenStack
+      ssh_config:
+        type: map
+        description: Additional ssh config, to be added to default ansible_ssh_common_args
+        required: false
+        default: {}
+      env:
+        type: map
+        description: Optional OpenStack environment
+        required: false
+        entry_schema:
+          type: sodalite.datatypes.OpenStack.env
+      timeout:
+        type: integer
+        description: Timeout to instantiate the VM
+        required: false
+        default: 600
+      floating_ip_pools:
+        type: list
+        description: Name of floating IP pool from which to choose a floating IP
+        required: false
+      network:
+        type: string
+        description: OpenStack network id (network names are not accepted)
+      username:
+        type: string
+        description: Username for SSH connection
+    requirements:
+      - protected_by:
+          capability: tosca.capabilities.Node
+          node: sodalite.nodes.OpenStack.SecurityRules
+          relationship: tosca.relationships.DependsOn
+          occurrences: [ 0, UNBOUNDED ]
+    capabilities:
+      feature:
+        occurrences: [ 1, UNBOUNDED ]
+        type: tosca.capabilities.Node
+    interfaces:
+      Standard:
+        type: tosca.interfaces.node.lifecycle.Standard
+        operations:
+          create:
+            inputs:
+              flavor:
+                type: string
+                required: true
+                default: { get_property: [ SELF, flavor ] }
+              key_name:
+                type: string
+                required: true
+                default: { get_property: [ SELF, key_name ] }
+              image:
+                type: string
+                required: true
+                default: { get_property: [ SELF, image ] }
+              security_groups:
+                type: string
+                required: true
+                default: { get_property: [ SELF, security_groups ] }
+              ansible_user:
+                type: string
+                required: true
+                default: { get_property: [ SELF, username ] }
+              userdata:
+                type: string
+                required: true
+                default: { get_property: [ SELF, userdata ] }
+              include_exporter:
+                type: boolean
+                required: true
+                default: { get_property: [ SELF, include_exporter ] }
+              ssh_config:
+                type: string
+                required: true
+                default: { get_property: [ SELF, ssh_config ] }
+              env:
+                type: map
+                required: true
+                default: { get_property: [ SELF, env ] }
+              vm_name:
+                type: string
+                required: true
+                default: { get_property: [ SELF, name ] }
+              timeout:
+                type: integer
+                required: true
+                default: { get_property: [ SELF, timeout ] }
+              floating_ip_pools:
+                type: list
+                required: true
+                default: { get_property: [ SELF, floating_ip_pools ] }
+              network:
+                type: string
+                required: true
+                default: { get_property: [ SELF, network ] }
+            implementation:
+              primary: vm_create
+              dependencies: [ egi_refresh_token ]
+          delete:
+            inputs:
+              id:
+                type: string
+                required: true
+                default: { get_attribute: [ SELF, id ] }
+              env:
+                type: map
+                required: true
+                default: { get_property: [ SELF, env ] }
+            implementation:
+              primary: vm_delete
+              dependencies: [ egi_refresh_token ]
+    artifacts:
+      vm_delete:
+        type: radon.artifacts.Ansible
+        file: vm_delete.yml
+      vm_create:
+        type: radon.artifacts.Ansible
+        file: vm_create.yml
+      egi_refresh_token:
+        type: radon.artifacts.Ansible
+        file: egi_refresh_token.yml

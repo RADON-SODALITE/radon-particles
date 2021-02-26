@@ -1,0 +1,27 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+data_types:
+  sodalite.datatypes.OpenStack.SecurityRule:
+    derived_from: tosca.datatypes.Root
+    metadata:
+      targetNamespace: "sodalite.datatypes.OpenStack"
+      abstract: "false"
+      final: "false"
+    properties:
+      protocol:
+        type: string
+        default: "tcp"
+        constraints:
+          - valid_values: [ tcp, udp, icmp ]
+      port_range_max:
+        type: tosca.datatypes.network.PortDef
+      remote_ip_prefix:
+        type: string
+        default: "0.0.0.0/0"
+      port_range_min:
+        type: tosca.datatypes.network.PortDef
+      direction:
+        type: string
+        default: "ingress"
+        constraints:
+          - valid_values: [ ingress, egress ]
