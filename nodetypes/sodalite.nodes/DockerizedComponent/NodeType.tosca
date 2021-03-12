@@ -38,7 +38,6 @@ node_types:
         type: string
         description: Exposed ports of the container like "8081"
         required: false
-        default: ""
       ports:
         type: list
         description: Port binding for the docker container "exposed:internal" like "8081:8080"
@@ -101,6 +100,11 @@ node_types:
           capability: tosca.capabilities.Node
           node: sodalite.nodes.DockerRegistry
           relationship: tosca.relationships.DependsOn
+          occurrences: [ 1, 1 ]
+      - host:
+          capability: tosca.capabilities.Compute
+          node: sodalite.nodes.DockerHost
+          relationship: tosca.relationships.HostedOn
           occurrences: [ 1, 1 ]
     interfaces:
       Standard:

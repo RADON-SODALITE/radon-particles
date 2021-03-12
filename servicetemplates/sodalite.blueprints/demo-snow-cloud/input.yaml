@@ -1,0 +1,23 @@
+snow-ssh-key-name:
+snow-ssh-public-key:
+snow-image-name:
+openstack-network-name:
+openstack-floating-ip-pool:
+snow-security-groups:
+snow-flavor-name:
+snow-vm-username:
+os-env:
+  checkin_env:
+    CHECKIN_CLIENT_ID:
+    CHECKIN_CLIENT_SECRET:
+    CHECKIN_REFRESH_TOKEN:
+    EGI_SITE:
+docker-network:
+docker-registry-url:
+docker-registry-cert-country-name:
+docker-registry-cert-organization-name:
+docker-registry-cert-email-address:
+mysql-db-pass:
+mysql-env:
+  MYSQL_ROOT_PASSWORD:
+  MYSQL_DATABASE:
