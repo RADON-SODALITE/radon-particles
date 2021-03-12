@@ -47,8 +47,8 @@ topology_template:
     AwsS3TargetBucket:
       type: radon.nodes.aws.AwsS3Bucket
       metadata:
-        x: "221"
-        y: "988"
+        x: "419"
+        y: "884"
         displayName: "TargetBucket"
       properties:
         name: "kml-snow-thumbnails-bucket"
@@ -133,8 +133,8 @@ topology_template:
     AwsLambdaFunction:
       type: radon.nodes.aws.AwsLambdaFunction
       metadata:
-        x: "197"
-        y: "735"
+        x: "425"
+        y: "670"
         displayName: "ThumbnailGenerator"
       properties:
         handler: "spblab.thumbgen.lambda.ThumbnailGenerationHandler"
@@ -160,7 +160,7 @@ topology_template:
       artifacts:
         thumbnail-generator:
           type: radon.artifacts.archive.JAR
-          file: thumbgen/servicetemplates/radon.blueprints/ThumbnailGeneration/files/AwsLambdaFunction/thumbnail-generator/thumbnail-generator-dev.jar
+          file: thumbnail-generator-dev.jar
     snow-docker-volume-masks:
       type: sodalite.nodes.DockerVolume
       metadata:
@@ -249,8 +249,8 @@ topology_template:
     AwsS3SourceBucket:
       type: radon.nodes.aws.AwsS3Bucket
       metadata:
-        x: "233"
-        y: "423"
+        x: "422"
+        y: "460"
         displayName: "SourceBucket"
       properties:
         name: "kml-snow-images-bucket"
@@ -267,14 +267,12 @@ topology_template:
     PubsS3Bucket_0:
       type: radon.nodes.datapipeline.destination.PubsS3Bucket
       metadata:
-        x: "247"
-        y: "233"
+        x: "334"
+        y: "246"
         displayName: "PubsS3Bucket"
       properties:
         BucketName: "kml-snow-images-bucket"
         cred_file_path: "/home/kml/.aws/nifi_credentials"
-        schedulingStrategy: "EVENT_DRIVEN"
-        schedulingPeriodCRON: "* * * * * ?"
         name: "SendToS3"
         Region: "eu-central-1"
       requirements:
@@ -730,8 +728,8 @@ topology_template:
     AwsPlatform:
       type: radon.nodes.aws.AwsPlatform
       metadata:
-        x: "696"
-        y: "430"
+        x: "76"
+        y: "892"
         displayName: "AwsPlatform"
       properties:
         name: "AWS"
@@ -744,8 +742,8 @@ topology_template:
     ConsumeLocal_0:
       type: radon.nodes.datapipeline.source.ConsumeLocal
       metadata:
-        x: "285"
-        y: "105"
+        x: "201"
+        y: "151"
         displayName: "ConsumeLocal"
       properties:
         name: "consumeLocalFolder"
