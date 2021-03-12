@@ -71,7 +71,7 @@ node_types:
         type: radon.artifacts.Ansible
         file: remove_cert.yml
       ca.crt:
-        type: radon.artifacts.File
+        type: tosca.artifacts.File
         file: ca.crt
       add_cert:
         type: radon.artifacts.Ansible
