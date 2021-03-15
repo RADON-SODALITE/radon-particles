@@ -43,6 +43,12 @@ topology_template:
     openstack-network-name:
       type: string
       required: true
+    docker-user:
+      type: string
+      required: true
+    docker-pass:
+      type: string
+      required: true
   node_templates:
     AwsS3TargetBucket:
       type: radon.nodes.aws.AwsS3Bucket
@@ -389,6 +395,8 @@ topology_template:
         displayName: "snow-docker-registry"
       properties:
         docker_registry_url: { get_input: docker-registry-url }
+        docker_user: { get_input: docker-user }
+        docker_pass: { get_input: docker-pass }
       requirements:
         - dependency:
             node: snow-docker-host

@@ -14,6 +14,8 @@ os-env:
     EGI_SITE:
 docker-network:
 docker-registry-url:
+docker-user:
+docker-pass:
 docker-registry-cert-country-name:
 docker-registry-cert-organization-name:
 docker-registry-cert-email-address:
