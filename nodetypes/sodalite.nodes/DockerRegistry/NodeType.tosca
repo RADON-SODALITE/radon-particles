@@ -14,9 +14,11 @@ node_types:
       docker_user:
         type: string
         description: Docker Hub login
+        default: ""
       docker_pass:
         type: string
         description: Docker Hub password
+        default: ""
     interfaces:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard

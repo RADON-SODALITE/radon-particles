@@ -19,16 +19,22 @@ topology_template:
     flavor-name:
       type: string
       required: true
-    docker-registry-cert-country-name:
+    docker-user:
       type: string
       required: true
     security-groups:
       type: string
       required: true
-    docker-registry-cert-organization-name:
+    demo-files-path:
       type: string
       required: true
-    demo-files-path:
+    docker-pass:
+      type: string
+      required: true
+    docker-registry-cert-country-name:
+      type: string
+      required: true
+    docker-registry-cert-organization-name:
       type: string
       required: true
     docker-registry-cert-email-address:
@@ -41,12 +47,6 @@ topology_template:
       type: string
       required: true
     openstack-network-name:
-      type: string
-      required: true
-    docker-user:
-      type: string
-      required: true
-    docker-pass:
       type: string
       required: true
   node_templates:

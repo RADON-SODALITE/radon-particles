@@ -1,32 +1,39 @@
 tosca_definitions_version: tosca_simple_yaml_1_3
 
 node_types:
-  sodalite.nodes.ConfigurationDemo:        
+  sodalite.nodes.ConfigurationDemo:
     derived_from: tosca.nodes.SoftwareComponent
+    metadata:
+      targetNamespace: "sodalite.nodes"
+      abstract: "false"
+      final: "false"
     properties:
       mysql_db_pass:
         type: string
         description: MYSQL database password.
-        required: true
     requirements:
-      - remote_server:  
-          capability: tosca.capabilities.Compute 
+      - remote_server:
+          capability: tosca.capabilities.Compute
           node: sodalite.nodes.OpenStack.VM
-          relationship: tosca.relationships.DependsOn            
+          relationship: tosca.relationships.DependsOn
+          occurrences: [ 1, 1 ]
     interfaces:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
         operations:
-          create:      
+          create:
             inputs:
-              remote_server:
-                default: { get_attribute: [ SELF, remote_server, public_address ] }
               mysql_db_pass:
+                type: string
+                required: true
                 default: { get_property: [ SELF, mysql_db_pass ] }
+              remote_server:
+                type: string
+                required: true
+                default: { get_attribute: [ SELF, remote_server, public_address ] }
             implementation:
               primary: configure_demo
-              dependencies: 
-                - config
+              dependencies: [ config ]
     artifacts:
       configure_demo:
         type: radon.artifacts.Ansible
