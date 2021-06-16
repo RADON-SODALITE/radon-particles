@@ -4,7 +4,7 @@ metadata:
   targetNamespace: "sodalite.blueprints"
 topology_template:
   inputs:
-    image-name:
+    openstack-floating-ip-pool:
       type: string
       required: true
     mysql-db-pass:
@@ -13,25 +13,31 @@ topology_template:
     docker-network:
       type: string
       required: true
+    snow-ssh-public-key:
+      type: string
+      required: true
     docker-registry-url:
       type: string
       required: true
-    flavor-name:
+    snow-flavor-name:
       type: string
       required: true
-    docker-user:
+    snow-ssh-key-name:
       type: string
       required: true
-    security-groups:
-      type: string
+    os-env:
+      type: map
       required: true
-    demo-files-path:
-      type: string
-      required: true
-    docker-pass:
+    snow-image-name:
       type: string
       required: true
     docker-registry-cert-country-name:
+      type: string
+      required: true
+    snow-security-groups:
+      type: string
+      required: true
+    snow-vm-username:
       type: string
       required: true
     docker-registry-cert-organization-name:
@@ -42,9 +48,6 @@ topology_template:
       required: true
     mysql-env:
       type: map
-      required: true
-    ssh-key-name:
-      type: string
       required: true
     openstack-network-name:
       type: string
@@ -57,7 +60,7 @@ topology_template:
         y: "884"
         displayName: "TargetBucket"
       properties:
-        name: "kml-snow-thumbnails-bucket"
+        name: "snow-uc-thumbnails"
         maxsize: "0 MB"
       requirements:
         - host:
@@ -75,18 +78,18 @@ topology_template:
         ports:
           ssh:
             protocol: "tcp"
-            remote_ip_prefix: "0.0.0.0/0"
             port_range_max: 22
+            remote_ip_prefix: "0.0.0.0/0"
             port_range_min: 22
           component_ports:
             protocol: "tcp"
-            port_range_max: 8082
             remote_ip_prefix: "0.0.0.0/0"
+            port_range_max: 8082
             port_range_min: 8080
           http_port:
             protocol: "tcp"
-            port_range_max: 80
             remote_ip_prefix: "0.0.0.0/0"
+            port_range_max: 80
             port_range_min: 80
         env: { get_input: os-env }
         group_description: "Snow UC security group"
@@ -145,14 +148,14 @@ topology_template:
       properties:
         handler: "spblab.thumbgen.lambda.ThumbnailGenerationHandler"
         memory: 256
-        name: "kml-lambda-thumbgen-test"
+        name: "snow-uc-lambda-thumbnail-generator"
         runtime: "java8"
         alias: "dev"
         statement_id: "lambda_test_permission01"
         zip_file: { get_artifact: [ SELF, thumbnail-generator ] }
         timeout: 300
         env_vars:
-          THUMBNAIL_BUCKET: "kml-snow-thumbnails-bucket"
+          THUMBNAIL_BUCKET: "snow-uc-thumbnails"
         concurrency: 0
       requirements:
         - endpoint:
@@ -259,7 +262,7 @@ topology_template:
         y: "460"
         displayName: "SourceBucket"
       properties:
-        name: "kml-snow-images-bucket"
+        name: "snow-uc-processed-images"
         maxsize: "0 MB"
       requirements:
         - host:
@@ -277,7 +280,7 @@ topology_template:
         y: "246"
         displayName: "PubsS3Bucket"
       properties:
-        BucketName: "kml-snow-images-bucket"
+        BucketName: "snow-uc-processed-images"
         cred_file_path: "/home/kml/.aws/nifi_credentials"
         name: "SendToS3"
         Region: "eu-central-1"
@@ -331,7 +334,7 @@ topology_template:
         displayName: "Nifi"
       properties:
         port: 8080
-        component_version: "1.12.1"
+        component_version: "1.13.2"
       requirements:
         - dependency:
             node: snow-demo-nginx
@@ -364,7 +367,7 @@ topology_template:
             relationship: con_DependsOn_40
             capability: feature
         - dependency:
-            node: snow-docker-volume-shots
+            node: snow-docker-volume-daily-shots
             relationship: con_DependsOn_41
             capability: feature
         - dependency:
@@ -395,8 +398,6 @@ topology_template:
         displayName: "snow-docker-registry"
       properties:
         docker_registry_url: { get_input: docker-registry-url }
-        docker_user: { get_input: docker-user }
-        docker_pass: { get_input: docker-pass }
       requirements:
         - dependency:
             node: snow-docker-host
@@ -761,6 +762,10 @@ topology_template:
             node: Nifi_0
             relationship: con_HostedOn_22
             capability: host
+        - connectToPipeline:
+            node: PubsS3Bucket_0
+            relationship: con_ConnectNifiLocal_0
+            capability: ConnectToPipeline
     snow-docker-registry-certificate-2:
       type: sodalite.nodes.RegistryCertificate
       metadata:
@@ -942,3 +947,5 @@ topology_template:
       type: tosca.relationships.DependsOn
     con_ConnectsTo_0:
       type: radon.relationships.ConnectsTo
+    con_ConnectNifiLocal_0:
+      type: radon.relationships.datapipeline.ConnectNifiLocal
