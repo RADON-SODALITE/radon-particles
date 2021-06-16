@@ -1,0 +1,215 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+node_types:
+  sodalite.nodes.DockerizedComponent:
+    derived_from: tosca.nodes.SoftwareComponent
+    metadata:
+      targetNamespace: "sodalite.nodes"
+      abstract: "false"
+      final: "false"
+    attributes:
+      ip_address:
+        description: IP address of dockerized component
+        type: string
+    properties:
+      capabilities:
+        type: list
+        description: List of capabilities to add to the container.
+        required: false
+        default: "[  ]"
+      env_file:
+        type: string
+        description: Path to file on remote with env vars
+        required: false
+      docker_network_name:
+        type: string
+        description: Alias name for docker container
+        required: false
+      client_cert:
+        type: string
+        description: Path to the client's TLS certificate file.
+        required: false
+      volumes:
+        type: list
+        description: A list of mounted volumes for the docker container "host_path:container_path" like "/tmp/docker:/tmp"
+        required: false
+        default: "[  ]"
+      exposed_ports:
+        type: string
+        description: Exposed ports of the container like "8081"
+        required: false
+      ports:
+        type: list
+        description: Port binding for the docker container "exposed:internal" like "8081:8080"
+        required: false
+        default: "[  ]"
+      env:
+        type: map
+        description: Map for docker environment variables key-value dictionary
+        required: false
+        default: "{}"
+      command:
+        type: list
+        description: Commands list for starting the container
+        required: false
+      labels:
+        type: map
+        description: Dictionary of key value pairs.
+        required: false
+        default: "{}"
+      sleep:
+        type: integer
+        description: Sleep after image is deployed
+        required: false
+        default: 0
+      image_name:
+        type: string
+        description: The name of the image on the host
+      client_key:
+        type: string
+        description: Path to the client's TLS key file.
+        required: false
+      hostname:
+        type: string
+        description: The container's hostname.
+        required: false
+      restart_policy:
+        type: string
+        description: Restart policy [no, on-failure, always, unless-stopped]
+        required: false
+        default: "always"
+      alias:
+        type: string
+        description: Alias name for docker container
+      etc_hosts:
+        type: map
+        description: Host-to-IP mappings
+        required: false
+        default: "{}"
+      ca_cert:
+        type: string
+        description: Use a CA certificate when performing server verification by providing the path to a CA certificate file.
+        required: false
+    requirements:
+      - network:
+          capability: tosca.capabilities.Network
+          node: sodalite.nodes.DockerNetwork
+          relationship: tosca.relationships.DependsOn
+          occurrences: [ 0, 1 ]
+      - registry:
+          capability: tosca.capabilities.Node
+          node: sodalite.nodes.DockerRegistry
+          relationship: tosca.relationships.DependsOn
+          occurrences: [ 1, 1 ]
+      - host:
+          capability: tosca.capabilities.Compute
+          node: sodalite.nodes.DockerHost
+          relationship: tosca.relationships.HostedOn
+          occurrences: [ 1, 1 ]
+    interfaces:
+      Standard:
+        type: tosca.interfaces.node.lifecycle.Standard
+        operations:
+          create:
+            inputs:
+              registry_url:
+                type: string
+                required: true
+                default: { get_property: [ SELF, registry, docker_registry_url ] }
+              capabilities:
+                type: list
+                required: true
+                default: { get_property: [ SELF, capabilities ] }
+              env_file:
+                type: string
+                required: true
+                default: { get_property: [ SELF, env_file ] }
+              docker_network_name:
+                type: string
+                required: true
+                default: { get_property: [ SELF, docker_network_name ] }
+              client_cert:
+                type: string
+                required: true
+                default: { get_property: [ SELF, client_cert ] }
+              exposed_ports:
+                type: string
+                required: true
+                default: { get_property: [ SELF, exposed_ports ] }
+              volumes:
+                type: list
+                required: true
+                default: { get_property: [ SELF, volumes ] }
+              env:
+                type: map
+                required: true
+                default: { get_property: [ SELF, env ] }
+              ports:
+                type: list
+                required: true
+                default: { get_property: [ SELF, ports ] }
+              command:
+                type: list
+                required: true
+                default: { get_property: [ SELF, command ] }
+              labels:
+                type: map
+                required: true
+                default: { get_property: [ SELF, labels ] }
+              sleep:
+                type: integer
+                required: true
+                default: { get_property: [ SELF, sleep ] }
+              image_name:
+                type: string
+                required: true
+                default: { get_property: [ SELF, image_name ] }
+              client_key:
+                type: string
+                required: true
+                default: { get_property: [ SELF, client_key ] }
+              ansible_user:
+                type: string
+                required: true
+                default: { get_attribute: [ SELF, host, username ] }
+              restart_policy:
+                type: string
+                required: true
+                default: { get_property: [ SELF, restart_policy ] }
+              alias:
+                type: string
+                required: true
+                default: { get_property: [ SELF, alias ] }
+              public_address:
+                type: string
+                required: true
+                default: { get_attribute: [ SELF, host, public_address ] }
+              etc_hosts:
+                type: map
+                required: true
+                default: { get_property: [ SELF, etc_hosts ] }
+              ca_cert:
+                type: string
+                required: true
+                default: { get_property: [ SELF, ca_cert ] }
+            implementation:
+              primary: add_container
+          delete:
+            inputs:
+              ansible_user:
+                type: string
+                required: true
+                default: { get_attribute: [ SELF, host, username ] }
+              alias:
+                type: string
+                required: true
+                default: { get_property: [ SELF, alias ] }
+            implementation:
+              primary: remove_container
+    artifacts:
+      add_container:
+        type: radon.artifacts.Ansible
+        file: add_container.yml
+      remove_container:
+        type: radon.artifacts.Ansible
+        file: remove_container.yml

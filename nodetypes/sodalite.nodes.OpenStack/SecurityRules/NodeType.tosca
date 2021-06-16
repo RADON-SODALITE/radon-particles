@@ -1,0 +1,79 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+node_types:
+  sodalite.nodes.OpenStack.SecurityRules:
+    derived_from: tosca.nodes.Root
+    metadata:
+      targetNamespace: "sodalite.nodes.OpenStack"
+      abstract: "false"
+      final: "false"
+    properties:
+      group_name:
+        type: string
+        description: Name of the security group in openstack.
+      ports:
+        type: map
+        description: A map of security rules definition defining protocol, porte-ranges, remoteIPs, direction.
+        constraints:
+          - min_length: 1
+        entry_schema:
+          type: sodalite.datatypes.OpenStack.SecurityRule
+      env:
+        type: map
+        description: Optional OpenStack environment
+        required: false
+        entry_schema:
+          type: sodalite.datatypes.OpenStack.env
+      group_description:
+        type: string
+        description: Description of the security group in openstack.
+    interfaces:
+      Standard:
+        type: tosca.interfaces.node.lifecycle.Standard
+        operations:
+          create:
+            inputs:
+              group_name:
+                type: string
+                required: true
+                default: { get_property: [ SELF, group_name ] }
+              ports:
+                type: map
+                required: true
+                default: { get_property: [ SELF, ports ] }
+              env:
+                type: map
+                required: true
+                default: { get_property: [ SELF, env ] }
+              group_description:
+                type: string
+                required: true
+                default: { get_property: [ SELF, group_description ] }
+            implementation:
+              primary: security_rule_create
+              dependencies: [ egi_refresh_token ]
+              timeout: 0
+          delete:
+            inputs:
+              group_name:
+                type: string
+                required: true
+                default: { get_property: [ SELF, group_name ] }
+              env:
+                type: map
+                required: true
+                default: { get_property: [ SELF, env ] }
+            implementation:
+              primary: security_rule_delete
+              dependencies: [ egi_refresh_token ]
+              timeout: 0
+    artifacts:
+      security_rule_delete:
+        type: radon.artifacts.Ansible
+        file: security_rule_delete.yml
+      security_rule_create:
+        type: radon.artifacts.Ansible
+        file: security_rule_create.yml
+      egi_refresh_token:
+        type: radon.artifacts.Ansible
+        file: egi_refresh_token.yml

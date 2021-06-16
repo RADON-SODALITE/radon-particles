@@ -1,0 +1,951 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+metadata:
+  targetNamespace: "sodalite.blueprints"
+topology_template:
+  inputs:
+    openstack-floating-ip-pool:
+      type: string
+      required: true
+    mysql-db-pass:
+      type: string
+      required: true
+    docker-network:
+      type: string
+      required: true
+    snow-ssh-public-key:
+      type: string
+      required: true
+    docker-registry-url:
+      type: string
+      required: true
+    snow-flavor-name:
+      type: string
+      required: true
+    snow-ssh-key-name:
+      type: string
+      required: true
+    os-env:
+      type: map
+      required: true
+    snow-image-name:
+      type: string
+      required: true
+    docker-registry-cert-country-name:
+      type: string
+      required: true
+    snow-security-groups:
+      type: string
+      required: true
+    snow-vm-username:
+      type: string
+      required: true
+    docker-registry-cert-organization-name:
+      type: string
+      required: true
+    docker-registry-cert-email-address:
+      type: string
+      required: true
+    mysql-env:
+      type: map
+      required: true
+    openstack-network-name:
+      type: string
+      required: true
+  node_templates:
+    AwsS3TargetBucket:
+      type: radon.nodes.aws.AwsS3Bucket
+      metadata:
+        x: "419"
+        y: "884"
+        displayName: "TargetBucket"
+      properties:
+        name: "snow-uc-thumbnails"
+        maxsize: "0 MB"
+      requirements:
+        - host:
+            node: AwsPlatform
+            relationship: con_HostedOn_23
+            capability: host
+    snow-security-rules:
+      type: sodalite.nodes.OpenStack.SecurityRules
+      metadata:
+        x: "2288"
+        y: "975"
+        displayName: "snow-security-rules"
+      properties:
+        group_name: "snow"
+        ports:
+          ssh:
+            protocol: "tcp"
+            port_range_max: 22
+            remote_ip_prefix: "0.0.0.0/0"
+            port_range_min: 22
+          component_ports:
+            protocol: "tcp"
+            remote_ip_prefix: "0.0.0.0/0"
+            port_range_max: 8082
+            port_range_min: 8080
+          http_port:
+            protocol: "tcp"
+            remote_ip_prefix: "0.0.0.0/0"
+            port_range_max: 80
+            port_range_min: 80
+        env: { get_input: os-env }
+        group_description: "Snow UC security group"
+    snow-docker-volume-daily-shots:
+      type: sodalite.nodes.DockerVolume
+      metadata:
+        x: "684"
+        y: "1083"
+        displayName: "snow-docker-volume-daily-shots"
+      properties:
+        name: "snow_volume_daily_shots"
+      requirements:
+        - dependency:
+            node: snow-docker-host
+            relationship: con_DependsOn_14
+            capability: feature
+        - host:
+            node: snow-vm
+            relationship: con_HostedOn_9
+            capability: host
+    snow-mysql:
+      type: sodalite.nodes.DockerizedComponent
+      metadata:
+        x: "1093"
+        y: "602"
+        displayName: "snow-mysql"
+      properties:
+        image_name: "snow-mysql:latest"
+        docker_network_name: { get_property: [ SELF, network, name ] }
+        exposed_ports:
+          - 3306
+        alias: "mysql"
+        ports:
+          - "3306:3306"
+        env: { get_input: mysql-env }
+        command: "--default-authentication-plugin=mysql_native_password"
+      requirements:
+        - host:
+            node: snow-docker-host
+            relationship: con_HostedOn_10
+            capability: host
+        - network:
+            node: snow-docker-network
+            relationship: con_DependsOn_15
+            capability: network
+        - registry:
+            node: snow-docker-registry
+            relationship: con_DependsOn_16
+            capability: feature
+    AwsLambdaFunction:
+      type: radon.nodes.aws.AwsLambdaFunction
+      metadata:
+        x: "425"
+        y: "670"
+        displayName: "ThumbnailGenerator"
+      properties:
+        handler: "spblab.thumbgen.lambda.ThumbnailGenerationHandler"
+        memory: 256
+        name: "snow-uc-lambda-thumbnail-generator"
+        runtime: "java8"
+        alias: "dev"
+        statement_id: "lambda_test_permission01"
+        zip_file: { get_artifact: [ SELF, thumbnail-generator ] }
+        timeout: 300
+        env_vars:
+          THUMBNAIL_BUCKET: "snow-uc-thumbnails"
+        concurrency: 0
+      requirements:
+        - endpoint:
+            node: AwsS3TargetBucket
+            relationship: con_ConnectsTo_0
+            capability: storage_endpoint
+        - host:
+            node: AwsPlatform
+            relationship: con_HostedOn_24
+            capability: host
+      artifacts:
+        thumbnail-generator:
+          type: radon.artifacts.archive.JAR
+          file: thumbnail-generator-dev.jar
+    snow-docker-volume-masks:
+      type: sodalite.nodes.DockerVolume
+      metadata:
+        x: "690"
+        y: "810"
+        displayName: "snow-docker-volume-masks"
+      properties:
+        name: "snow_volume_masks"
+      requirements:
+        - dependency:
+            node: snow-docker-host
+            relationship: con_DependsOn_13
+            capability: feature
+        - host:
+            node: snow-vm
+            relationship: con_HostedOn_8
+            capability: host
+    snow-docker-host:
+      type: sodalite.nodes.DockerHost
+      metadata:
+        x: "1769"
+        y: "666"
+        displayName: "snow-docker-host"
+      requirements:
+        - host:
+            node: snow-vm
+            relationship: con_HostedOn_0
+            capability: host
+    snow-skyline-alignment:
+      type: sodalite.nodes.DockerizedComponent
+      metadata:
+        x: "1097"
+        y: "828"
+        displayName: "snow-skyline-alignment"
+      properties:
+        image_name: "snow-skyline-alignment:latest"
+        volumes: "/tmp/docker:/tmp"
+        exposed_ports:
+          - 8080
+        alias: "snow-skyline-alignment"
+        ports:
+          - "8081:8080"
+          - "80:8080"
+      requirements:
+        - host:
+            node: snow-docker-host-2
+            relationship: con_HostedOn_15
+            capability: host
+        - registry:
+            node: snow-docker-registry
+            relationship: con_DependsOn_36
+            capability: feature
+    snow-demo-nginx:
+      type: sodalite.nodes.DockerizedComponent
+      metadata:
+        x: "1097"
+        y: "931"
+        displayName: "snow-demo-nginx"
+      properties:
+        image_name: "nginx:latest"
+        restart_policy: "always"
+        volumes:
+          - "snow_volume_demo_output:/usr/share/nginx/html"
+        exposed_ports:
+          - 80
+        alias: "snow-nginx"
+        ports:
+          - "80:80"
+      requirements:
+        - dependency:
+            node: snow-demo
+            relationship: con_DependsOn_46
+            capability: feature
+        - dependency:
+            node: snow-docker-volume-demo-output
+            relationship: con_DependsOn_47
+            capability: feature
+        - host:
+            node: snow-docker-host
+            relationship: con_HostedOn_19
+            capability: host
+        - registry:
+            node: snow-docker-registry
+            relationship: con_DependsOn_48
+            capability: feature
+    AwsS3SourceBucket:
+      type: radon.nodes.aws.AwsS3Bucket
+      metadata:
+        x: "422"
+        y: "460"
+        displayName: "SourceBucket"
+      properties:
+        name: "snow-uc-processed-images"
+        maxsize: "0 MB"
+      requirements:
+        - host:
+            node: AwsPlatform
+            relationship: con_HostedOn_25
+            capability: host
+        - invoker:
+            node: AwsLambdaFunction
+            relationship: con_AwsTriggers_0
+            capability: invocable
+    PubsS3Bucket_0:
+      type: radon.nodes.datapipeline.destination.PubsS3Bucket
+      metadata:
+        x: "334"
+        y: "246"
+        displayName: "PubsS3Bucket"
+      properties:
+        BucketName: "snow-uc-processed-images"
+        cred_file_path: "/home/kml/.aws/nifi_credentials"
+        name: "SendToS3"
+        Region: "eu-central-1"
+      requirements:
+        - host:
+            node: Nifi_0
+            relationship: con_HostedOn_21
+            capability: host
+    configuration-demo:
+      type: sodalite.nodes.ConfigurationDemo
+      metadata:
+        x: "1773"
+        y: "93"
+        displayName: "configuration-demo"
+      properties:
+        mysql_db_pass: { get_input: mysql-db-pass }
+      requirements:
+        - host:
+            node: snow-vm
+            relationship: con_HostedOn_6
+            capability: host
+        - remote_server:
+            node: snow-vm-2
+            relationship: con_DependsOn_11
+            capability: host
+    snow-docker-registry-certificate:
+      type: sodalite.nodes.RegistryCertificate
+      metadata:
+        x: "1765"
+        y: "274"
+        displayName: "snow-docker-registry-certificate"
+      properties:
+        email_address: { get_input: docker-registry-cert-email-address }
+        country_name: { get_input: docker-registry-cert-country-name }
+        registry_ip: { get_input: docker-registry-url }
+        organization_name: { get_input: docker-registry-cert-organization-name }
+      requirements:
+        - dependency:
+            node: snow-docker-host
+            relationship: con_DependsOn_4
+            capability: feature
+        - host:
+            node: snow-vm
+            relationship: con_HostedOn_1
+            capability: host
+    Nifi_0:
+      type: radon.nodes.nifi.Nifi
+      metadata:
+        x: "684"
+        y: "189"
+        displayName: "Nifi"
+      properties:
+        port: 8080
+        component_version: "1.13.2"
+      requirements:
+        - dependency:
+            node: snow-demo-nginx
+            relationship: con_DependsOn_49
+            capability: feature
+        - host:
+            node: snow-vm
+            relationship: con_HostedOn_20
+            capability: host
+    snow-demo:
+      type: sodalite.nodes.DockerizedComponent
+      metadata:
+        x: "1095"
+        y: "489"
+        displayName: "snow-demo"
+      properties:
+        image_name: "snow-demo:latest"
+        docker_network_name: { get_property: [ SELF, network, name ] }
+        restart_policy: "always"
+        volumes:
+          - "/tmp/conf/config.json:/SnowWatch-SODALITE/config.json"
+          - "snow_volume_daily_shots:/SnowWatch-SODALITE/data/daily_shots"
+          - "snow_volume_demo_output:/SnowWatch-SODALITE/data/output"
+        alias: "snow-demo"
+        command:
+          - "{{ ansible_date_time.date }}"
+      requirements:
+        - dependency:
+            node: snow-mysql
+            relationship: con_DependsOn_40
+            capability: feature
+        - dependency:
+            node: snow-docker-volume-daily-shots
+            relationship: con_DependsOn_41
+            capability: feature
+        - dependency:
+            node: snow-docker-volume-demo-output
+            relationship: con_DependsOn_42
+            capability: feature
+        - dependency:
+            node: configuration-demo
+            relationship: con_DependsOn_43
+            capability: feature
+        - host:
+            node: snow-docker-host
+            relationship: con_HostedOn_18
+            capability: host
+        - network:
+            node: snow-docker-network
+            relationship: con_DependsOn_44
+            capability: network
+        - registry:
+            node: snow-docker-registry
+            relationship: con_DependsOn_45
+            capability: feature
+    snow-docker-registry:
+      type: sodalite.nodes.DockerRegistry
+      metadata:
+        x: "1775"
+        y: "453"
+        displayName: "snow-docker-registry"
+      properties:
+        docker_registry_url: { get_input: docker-registry-url }
+      requirements:
+        - dependency:
+            node: snow-docker-host
+            relationship: con_DependsOn_6
+            capability: feature
+        - dependency:
+            node: snow-docker-host-2
+            relationship: con_DependsOn_7
+            capability: feature
+        - dependency:
+            node: snow-docker-registry-certificate
+            relationship: con_DependsOn_8
+            capability: feature
+        - dependency:
+            node: snow-docker-registry-certificate-2
+            relationship: con_DependsOn_9
+            capability: feature
+        - host:
+            node: snow-vm
+            relationship: con_HostedOn_4
+            capability: host
+    snow-skyline-extractor:
+      type: sodalite.nodes.DockerizedComponent
+      metadata:
+        x: "1097"
+        y: "142"
+        displayName: "snow-skyline-extractor"
+      properties:
+        image_name: "snow-skyline-extractor:latest"
+        volumes: "/tmp/docker:/tmp"
+        exposed_ports:
+          - 8080
+        alias: "snow-skyline-extractor"
+        ports:
+          - "8080:8080"
+      requirements:
+        - host:
+            node: snow-docker-host-2
+            relationship: con_HostedOn_14
+            capability: host
+        - registry:
+            node: snow-docker-registry
+            relationship: con_DependsOn_35
+            capability: feature
+    snow-webcam-crawler:
+      type: sodalite.nodes.DockerizedComponent
+      metadata:
+        x: "1103"
+        y: "243"
+        displayName: "snow-webcam-crawler"
+      properties:
+        image_name: "snow-webcam-crawler:latest"
+        docker_network_name: { get_property: [ SELF, network, name ] }
+        volumes:
+          - "/tmp/conf/config.json:/SnowWatch-SODALITE/WebCamCrawler/config.json"
+          - "snow_volume_shots:/SnowWatch-SODALITE/data/shots"
+          - "snow_volume_daily_shots:/SnowWatch-SODALITE/data/daily_shots"
+        alias: "snow-webcam-crawler"
+        command: "34,40,50,62,608,666,822,852,943,1307,6666"
+      requirements:
+        - dependency:
+            node: snow-mysql
+            relationship: con_DependsOn_17
+            capability: feature
+        - dependency:
+            node: snow-docker-volume-shots
+            relationship: con_DependsOn_18
+            capability: feature
+        - dependency:
+            node: configuration-demo
+            relationship: con_DependsOn_19
+            capability: feature
+        - host:
+            node: snow-docker-host
+            relationship: con_HostedOn_11
+            capability: host
+        - network:
+            node: snow-docker-network
+            relationship: con_DependsOn_20
+            capability: network
+        - registry:
+            node: snow-docker-registry
+            relationship: con_DependsOn_21
+            capability: feature
+    snow-weather-condition-filter:
+      type: sodalite.nodes.DockerizedComponent
+      metadata:
+        x: "1103"
+        y: "358"
+        displayName: "snow-weather-condition-filter"
+      properties:
+        image_name: "snow-weather-condition-filter:latest"
+        docker_network_name: { get_property: [ SELF, network, name ] }
+        restart_policy: "always"
+        volumes:
+          - "/tmp/conf/config.json:/SnowWatch-SODALITE/config.json"
+          - "snow_volume_shots:/SnowWatch-SODALITE/data/shots"
+          - "snow_volume_daily_shots:/SnowWatch-SODALITE/data/daily_shots"
+        alias: "snow-weather-condition-filter"
+        command:
+          - "{{ ansible_date_time.date }}"
+          - "34 40 50 62 608 666 822 852 943 1307 6666"
+      requirements:
+        - dependency:
+            node: snow-mysql
+            relationship: con_DependsOn_22
+            capability: feature
+        - dependency:
+            node: snow-docker-volume-shots
+            relationship: con_DependsOn_23
+            capability: feature
+        - dependency:
+            node: snow-docker-volume-masks
+            relationship: con_DependsOn_24
+            capability: feature
+        - dependency:
+            node: snow-docker-volume-daily-shots
+            relationship: con_DependsOn_25
+            capability: feature
+        - dependency:
+            node: configuration-demo
+            relationship: con_DependsOn_26
+            capability: feature
+        - host:
+            node: snow-docker-host
+            relationship: con_HostedOn_12
+            capability: host
+        - network:
+            node: snow-docker-network
+            relationship: con_DependsOn_27
+            capability: network
+        - registry:
+            node: snow-docker-registry
+            relationship: con_DependsOn_28
+            capability: feature
+    snow-docker-network:
+      type: sodalite.nodes.DockerNetwork
+      metadata:
+        x: "1773"
+        y: "376"
+        displayName: "snow-docker-network"
+      properties:
+        name: { get_input: docker-network }
+      requirements:
+        - dependency:
+            node: snow-docker-host
+            relationship: con_DependsOn_10
+            capability: feature
+        - host:
+            node: snow-vm
+            relationship: con_HostedOn_5
+            capability: host
+    snow-docker-volume-demo-output:
+      type: sodalite.nodes.DockerVolume
+      metadata:
+        x: "675"
+        y: "991"
+        displayName: "snow-docker-volume-demo-output"
+      properties:
+        name: "snow_volume_demo_output"
+      requirements:
+        - dependency:
+            node: snow-docker-host
+            relationship: con_DependsOn_37
+            capability: feature
+        - host:
+            node: snow-vm
+            relationship: con_HostedOn_16
+            capability: host
+    snow-webcam-mockup:
+      type: sodalite.nodes.DockerizedComponent
+      metadata:
+        x: "1100"
+        y: "725"
+        displayName: "snow-webcam-mockup"
+      properties:
+        image_name: "snow-webcam-mockup:latest"
+        docker_network_name: { get_property: [ SELF, network, name ] }
+        exposed_ports:
+          - 8082
+        alias: "snow-webcam-mockup"
+        ports:
+          - "8082:8080"
+      requirements:
+        - host:
+            node: snow-docker-host
+            relationship: con_HostedOn_17
+            capability: host
+        - network:
+            node: snow-docker-network
+            relationship: con_DependsOn_38
+            capability: network
+        - registry:
+            node: snow-docker-registry
+            relationship: con_DependsOn_39
+            capability: feature
+    snow-keypair:
+      type: sodalite.nodes.OpenStack.Keypair
+      metadata:
+        x: "2293"
+        y: "1067"
+        displayName: "snow-keypair"
+      properties:
+        public_key: { get_input: snow-ssh-public-key }
+        name: { get_input: snow-ssh-key-name }
+        env: { get_input: os-env }
+    snow-docker-host-2:
+      type: sodalite.nodes.DockerHost
+      metadata:
+        x: "1772"
+        y: "787"
+        displayName: "snow-docker-host-2"
+      requirements:
+        - host:
+            node: snow-vm-2
+            relationship: con_HostedOn_2
+            capability: host
+    snow-vm-2:
+      type: sodalite.nodes.OpenStack.VM
+      metadata:
+        x: "1782"
+        y: "985"
+        displayName: "snow-vm-2"
+      properties:
+        key_name: { get_input: snow-ssh-key-name }
+        flavor: { get_input: snow-flavor-name }
+        image: { get_input: snow-image-name }
+        security_groups: { get_input: snow-security-groups }
+        include_exporter: false
+        name: "snow-vm-2"
+        env: { get_input: os-env }
+        timeout: 666
+        floating_ip_pools: { get_input: openstack-floating-ip-pool }
+        network: { get_input: openstack-network-name }
+        username: { get_input: snow-vm-username }
+      requirements:
+        - dependency:
+            node: snow-keypair
+            relationship: con_DependsOn_3
+            capability: feature
+        - protected_by:
+            node: snow-security-rules
+            relationship: con_DependsOn_2
+            capability: feature
+    snow-vm:
+      type: sodalite.nodes.OpenStack.VM
+      metadata:
+        x: "1782"
+        y: "1115"
+        displayName: "snow-vm"
+      properties:
+        key_name: { get_input: snow-ssh-key-name }
+        flavor: { get_input: snow-flavor-name }
+        image: { get_input: snow-image-name }
+        security_groups: { get_input: snow-security-groups }
+        include_exporter: false
+        name: "snow-vm"
+        ssh_config: {}
+        env: { get_input: os-env }
+        timeout: 666
+        floating_ip_pools: { get_input: openstack-floating-ip-pool }
+        network: { get_input: openstack-network-name }
+        username: { get_input: snow-vm-username }
+      requirements:
+        - dependency:
+            node: snow-keypair
+            relationship: con_DependsOn_1
+            capability: feature
+        - protected_by:
+            node: snow-security-rules
+            relationship: con_DependsOn_0
+            capability: feature
+    snow-daily-median-aggregator:
+      type: sodalite.nodes.DockerizedComponent
+      metadata:
+        x: "1098"
+        y: "1085"
+        displayName: "snow-daily-median-aggregator"
+      properties:
+        image_name: "snow-daily-median-aggregator:latest"
+        docker_network_name: { get_property: [ SELF, network, name ] }
+        restart_policy: "always"
+        volumes:
+          - "/tmp/conf/config.json:/SnowWatch-SODALITE/config.json"
+          - "snow_volume_shots:/SnowWatch-SODALITE/data/shots"
+          - "snow_volume_daily_shots:/SnowWatch-SODALITE/data/daily_shots"
+        alias: "snow-daily-median-aggregator"
+        command:
+          - "{{ ansible_date_time.date }}"
+          - "34 40 50 62 608 666 822 852 943 1307 6666"
+      requirements:
+        - dependency:
+            node: snow-mysql
+            relationship: con_DependsOn_29
+            capability: feature
+        - dependency:
+            node: snow-docker-volume-shots
+            relationship: con_DependsOn_30
+            capability: feature
+        - dependency:
+            node: snow-docker-volume-daily-shots
+            relationship: con_DependsOn_31
+            capability: feature
+        - dependency:
+            node: configuration-demo
+            relationship: con_DependsOn_32
+            capability: feature
+        - host:
+            node: snow-docker-host
+            relationship: con_HostedOn_13
+            capability: host
+        - network:
+            node: snow-docker-network
+            relationship: con_DependsOn_33
+            capability: network
+        - registry:
+            node: snow-docker-registry
+            relationship: con_DependsOn_34
+            capability: feature
+    snow-docker-volume-shots:
+      type: sodalite.nodes.DockerVolume
+      metadata:
+        x: "688"
+        y: "890"
+        displayName: "snow-docker-volume-shots"
+      properties:
+        name: "snow_volume_shots"
+      requirements:
+        - dependency:
+            node: snow-docker-host
+            relationship: con_DependsOn_12
+            capability: feature
+        - host:
+            node: snow-vm
+            relationship: con_HostedOn_7
+            capability: host
+    AwsPlatform:
+      type: radon.nodes.aws.AwsPlatform
+      metadata:
+        x: "76"
+        y: "892"
+        displayName: "AwsPlatform"
+      properties:
+        name: "AWS"
+        region: "eu-central-1"
+      requirements:
+        - dependency:
+            node: ConsumeLocal_0
+            relationship: con_DependsOn_50
+            capability: feature
+    ConsumeLocal_0:
+      type: radon.nodes.datapipeline.source.ConsumeLocal
+      metadata:
+        x: "201"
+        y: "151"
+        displayName: "ConsumeLocal"
+      properties:
+        name: "consumeLocalFolder"
+        directory: "/var/lib/docker/volumes/snow_volume_demo_output/_data/img"
+      requirements:
+        - host:
+            node: Nifi_0
+            relationship: con_HostedOn_22
+            capability: host
+        - connectToPipeline:
+            node: PubsS3Bucket_0
+            relationship: con_ConnectNifiLocal_0
+            capability: ConnectToPipeline
+    snow-docker-registry-certificate-2:
+      type: sodalite.nodes.RegistryCertificate
+      metadata:
+        x: "2145"
+        y: "675"
+        displayName: "snow-docker-registry-certificate-2"
+      properties:
+        email_address: { get_input: docker-registry-cert-email-address }
+        country_name: { get_input: docker-registry-cert-country-name }
+        registry_ip: { get_input: docker-registry-url }
+        organization_name: { get_input: docker-registry-cert-organization-name }
+      requirements:
+        - dependency:
+            node: snow-docker-host-2
+            relationship: con_DependsOn_5
+            capability: feature
+        - host:
+            node: snow-vm-2
+            relationship: con_HostedOn_3
+            capability: host
+  relationship_templates:
+    con_DependsOn_19:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_17:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_18:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_15:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_16:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_13:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_14:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_22:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_11:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_23:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_12:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_24:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_25:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_10:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_20:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_50:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_21:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_19:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_15:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_16:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_17:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_18:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_2:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_3:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_0:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_1:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_48:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_49:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_46:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_47:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_44:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_11:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_45:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_12:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_42:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_13:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_8:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_43:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_14:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_9:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_40:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_6:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_41:
+      type: tosca.relationships.DependsOn
+    con_HostedOn_7:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_4:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_10:
+      type: tosca.relationships.HostedOn
+    con_HostedOn_5:
+      type: tosca.relationships.HostedOn
+    con_DependsOn_39:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_37:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_38:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_35:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_36:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_33:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_34:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_31:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_32:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_30:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_0:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_1:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_4:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_5:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_2:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_3:
+      type: tosca.relationships.DependsOn
+    con_AwsTriggers_0:
+      type: radon.relationships.aws.AwsTriggers
+      properties:
+        events: "s3:ObjectCreated:*"
+    con_DependsOn_28:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_29:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_26:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_27:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_24:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_25:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_22:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_8:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_23:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_9:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_20:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_6:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_21:
+      type: tosca.relationships.DependsOn
+    con_DependsOn_7:
+      type: tosca.relationships.DependsOn
+    con_ConnectsTo_0:
+      type: radon.relationships.ConnectsTo
+    con_ConnectNifiLocal_0:
+      type: radon.relationships.datapipeline.ConnectNifiLocal

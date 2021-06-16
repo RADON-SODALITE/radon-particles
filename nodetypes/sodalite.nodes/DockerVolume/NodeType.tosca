@@ -1,0 +1,57 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+node_types:
+  sodalite.nodes.DockerVolume:
+    derived_from: tosca.nodes.SoftwareComponent
+    metadata:
+      targetNamespace: "sodalite.nodes"
+      abstract: "false"
+      final: "false"
+    properties:
+      name:
+        type: string
+        description: The name of the volume
+      recreate:
+        type: string
+        description: Controls when a volume will be recreated
+        required: false
+        default: "never"
+    interfaces:
+      Standard:
+        type: tosca.interfaces.node.lifecycle.Standard
+        operations:
+          create:
+            inputs:
+              ansible_user:
+                type: string
+                required: true
+                default: { get_property: [ SELF, host, username ] }
+              volume_name:
+                type: string
+                required: true
+                default: { get_property: [ SELF, name ] }
+              recreate:
+                type: string
+                required: true
+                default: { get_property: [ SELF, recreate ] }
+            implementation:
+              primary: add_volume
+          delete:
+            inputs:
+              ansible_user:
+                type: string
+                required: true
+                default: { get_property: [ SELF, host, username ] }
+              volume_name:
+                type: string
+                required: true
+                default: { get_property: [ SELF, name ] }
+            implementation:
+              primary: remove_volume
+    artifacts:
+      remove_volume:
+        type: radon.artifacts.Ansible
+        file: remove_volume.yml
+      add_volume:
+        type: radon.artifacts.Ansible
+        file: add_volume.yml
